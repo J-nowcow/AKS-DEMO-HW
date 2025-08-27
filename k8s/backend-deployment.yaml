@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: j-nowcow/aks-demo-backend:latest
+        image: j-nowcow/aks-demo-hw-backend:latest
         # imagePullPolicy: Never
         ports:
         - containerPort: 5000

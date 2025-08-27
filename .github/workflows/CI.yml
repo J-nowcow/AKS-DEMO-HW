@@ -29,7 +29,7 @@ jobs:
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/aks-demo-backend
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/aks-demo-hw-backend
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -68,7 +68,7 @@ jobs:
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/aks-demo-frontend
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/aks-demo-hw-frontend
           tags: |
             type=ref,event=branch
             type=ref,event=pr
