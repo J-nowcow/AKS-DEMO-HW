@@ -1,0 +1,45 @@
+# Kafka Helm values for AKS demo
+replicaCount: 3
+
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 8Gi
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+deleteTopicEnable: true
+autoCreateTopicsEnable: true
+
+zookeeper:
+  enabled: true
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 4Gi
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# 인증 비활성화 (인증 없이 설치)
+auth:
+  enabled: false
+
+# 서비스 설정
+service:
+  type: ClusterIP
+
+# 네임스페이스 지정
+global:
+  namespaceOverride: "hyunwoo-hw"

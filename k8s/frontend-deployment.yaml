@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: default
+  namespace: hyunwoo-hw
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: giglepeople/hyunwoo-test-app-frontend:latest
+        image: j-nowcow/aks-demo-frontend:latest
         # imagePullPolicy: Never
         ports:
         - containerPort: 80
@@ -24,12 +24,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
-  namespace: default
+  namespace: hyunwoo-hw
 spec:
   type: NodePort
   selector:
     app: frontend
   ports:
   - port: 80
-    targetPort: 80
-    nodePort: 30080 
+    targetPort: 80    nodePort: 30090

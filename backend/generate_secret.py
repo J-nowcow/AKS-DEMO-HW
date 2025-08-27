@@ -1,6 +1,8 @@
-import secrets
+# import secrets
 import base64
 
-secret_key = secrets.token_hex(32)
-encoded_key = base64.b64encode(secret_key.encode()).decode()
-print(encoded_key) 
+redis_key = "New1234!"
+# secret_key = "GjA0PHx96N"
+secret_key = redis_key
+encoded_key = base64.b64encode(secret_key.encode())
+print(encoded_key.decode())

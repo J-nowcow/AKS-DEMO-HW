@@ -1,0 +1,29 @@
+# MariaDB Helm values for AKS demo
+auth:
+  enabled: true
+  rootPassword: "MariaDB1234!"
+  database: "testdb"
+  username: "hyunwoo"
+  password: "hyunwoo1234!"
+  existingSecret: ""
+
+primary:
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 8Gi
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+service:
+  type: ClusterIP
+
+# 네임스페이스 지정
+global:
+  namespaceOverride: "hyunwoo-hw"

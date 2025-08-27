@@ -37,15 +37,11 @@ def get_redis_connection():
         db=0
     )
 
-# Kafka Producer 설정
+# Kafka Producer 설정 (인증 없음)
 def get_kafka_producer():
     return KafkaProducer(
         bootstrap_servers=os.getenv('KAFKA_SERVERS', 'my-kafka:9092'),
-        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        security_protocol='SASL_PLAINTEXT',
-        sasl_mechanism='PLAIN',
-        sasl_plain_username=os.getenv('KAFKA_USERNAME', 'user1'),
-        sasl_plain_password=os.getenv('KAFKA_PASSWORD', '')
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
 
 # 로깅 함수
@@ -280,10 +276,6 @@ def get_kafka_logs():
             'api-logs',
             bootstrap_servers=os.getenv('KAFKA_SERVERS', 'my-kafka:9092'),
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            security_protocol='SASL_PLAINTEXT',
-            sasl_mechanism='PLAIN',
-            sasl_plain_username=os.getenv('KAFKA_USERNAME', 'user1'),
-            sasl_plain_password=os.getenv('KAFKA_PASSWORD', ''),
             group_id='api-logs-viewer',
             auto_offset_reset='earliest',
             consumer_timeout_ms=5000
