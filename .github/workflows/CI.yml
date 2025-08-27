@@ -2,14 +2,14 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ lgtm ]
+    branches: [ main ]
 
 jobs:
-  build-server:
+  build-backend:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./server
+        working-directory: ./backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,16 +26,16 @@ jobs:
 
       - name: Build and push Docker image to ACR
         run: |
-          docker build -t yamlette.azurecr.io/github-mcp-server:${{ github.sha }} \
-            -t yamlette.azurecr.io/github-mcp-server:latest .
-          docker push yamlette.azurecr.io/github-mcp-server:${{ github.sha }}
-          docker push yamlette.azurecr.io/github-mcp-server:latest
+          docker build -t yamlette.azurecr.io/aks-demo-backend:${{ github.sha }} \
+            -t yamlette.azurecr.io/aks-demo-backend:latest .
+          docker push yamlette.azurecr.io/aks-demo-backend:${{ github.sha }}
+          docker push yamlette.azurecr.io/aks-demo-backend:latest
 
-  build-client:
+  build-frontend:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./client
+        working-directory: ./frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
 
       - name: Build and push Docker image to ACR
         run: |
-          docker build -t yamlette.azurecr.io/github-mcp-client:${{ github.sha }} \
-            -t yamlette.azurecr.io/github-mcp-client:latest .
-          docker push yamlette.azurecr.io/github-mcp-client:${{ github.sha }}
-          docker push yamlette.azurecr.io/github-mcp-client:latest
+          docker build -t yamlette.azurecr.io/aks-demo-frontend:${{ github.sha }} \
+            -t yamlette.azurecr.io/aks-demo-frontend:latest .
+          docker push yamlette.azurecr.io/aks-demo-frontend:${{ github.sha }}
+          docker push yamlette.azurecr.io/aks-demo-frontend:latest
