@@ -1,0 +1,58 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [ lgtm ]
+
+jobs:
+  build-server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry (ACR)
+        uses: azure/docker-login@v1
+        with:
+          login-server: yamlette.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image to ACR
+        run: |
+          docker build -t yamlette.azurecr.io/github-mcp-server:${{ github.sha }} \
+            -t yamlette.azurecr.io/github-mcp-server:latest .
+          docker push yamlette.azurecr.io/github-mcp-server:${{ github.sha }}
+          docker push yamlette.azurecr.io/github-mcp-server:latest
+
+  build-client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry (ACR)
+        uses: azure/docker-login@v1
+        with:
+          login-server: yamlette.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image to ACR
+        run: |
+          docker build -t yamlette.azurecr.io/github-mcp-client:${{ github.sha }} \
+            -t yamlette.azurecr.io/github-mcp-client:latest .
+          docker push yamlette.azurecr.io/github-mcp-client:${{ github.sha }}
+          docker push yamlette.azurecr.io/github-mcp-client:latest
