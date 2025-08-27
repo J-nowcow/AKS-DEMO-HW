@@ -20,16 +20,16 @@ jobs:
       - name: Log in to Azure Container Registry (ACR)
         uses: azure/docker-login@v1
         with:
-          login-server: yamlette.azurecr.io
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Docker image to ACR
         run: |
-          docker build -t yamlette.azurecr.io/aks-demo-backend:${{ github.sha }} \
-            -t yamlette.azurecr.io/aks-demo-backend:latest .
-          docker push yamlette.azurecr.io/aks-demo-backend:${{ github.sha }}
-          docker push yamlette.azurecr.io/aks-demo-backend:latest
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-backend:${{ github.sha }} \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-backend:latest .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-backend:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-backend:latest
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -46,13 +46,13 @@ jobs:
       - name: Log in to Azure Container Registry (ACR)
         uses: azure/docker-login@v1
         with:
-          login-server: yamlette.azurecr.io
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Docker image to ACR
         run: |
-          docker build -t yamlette.azurecr.io/aks-demo-frontend:${{ github.sha }} \
-            -t yamlette.azurecr.io/aks-demo-frontend:latest .
-          docker push yamlette.azurecr.io/aks-demo-frontend:${{ github.sha }}
-          docker push yamlette.azurecr.io/aks-demo-frontend:latest
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-frontend:${{ github.sha }} \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-frontend:latest .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-frontend:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/hyunwoo-test-app-frontend:latest
