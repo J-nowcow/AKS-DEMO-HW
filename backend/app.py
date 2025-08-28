@@ -101,8 +101,8 @@ def save_to_db():
         db = get_db_connection()
         data = request.json
         cursor = db.cursor()
-        sql = "INSERT INTO messages (message, created_at) VALUES (%s, %s)"
-        cursor.execute(sql, (data['message'], datetime.now()))
+        sql = "INSERT INTO messages (user_id, message, created_at) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (user_id, data['message'], datetime.now()))
         db.commit()
         cursor.close()
         db.close()
@@ -124,7 +124,7 @@ def get_from_db():
         user_id = session['user_id']
         db = get_db_connection()
         cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM messages ORDER BY created_at DESC")
+        cursor.execute("SELECT * FROM messages WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
         messages = cursor.fetchall()
         cursor.close()
         db.close()
@@ -252,8 +252,8 @@ def search_messages():
         # DB에서 검색
         db = get_db_connection()
         cursor = db.cursor(dictionary=True)
-        sql = "SELECT * FROM messages WHERE message LIKE %s ORDER BY created_at DESC"
-        cursor.execute(sql, (f"%{query}%",))
+        sql = "SELECT * FROM messages WHERE user_id = %s AND message LIKE %s ORDER BY created_at DESC"
+        cursor.execute(sql, (user_id, f"%{query}%"))
         results = cursor.fetchall()
         cursor.close()
         db.close()

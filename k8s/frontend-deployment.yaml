@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: j-nowcow/aks-demo-hw-frontend:latest
-        # imagePullPolicy: Never
+        image: jnowcow/aks-demo-hw-frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 ---
@@ -31,4 +31,5 @@ spec:
     app: frontend
   ports:
   - port: 80
-    targetPort: 80    nodePort: 30090
+    targetPort: 80
+    nodePort: 30090

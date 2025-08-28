@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: hyunwoo-hw
+data:
+  # 백엔드 설정
+  MYSQL_DATABASE: "testdb"
+  REDIS_DB: "0"
+  KAFKA_TOPIC: "api-logs"
+  
+  # 애플리케이션 설정
+  LOG_LEVEL: "INFO"
+  DEBUG: "false"
+  
+  # 백엔드 서비스 호스트
+  MYSQL_HOST: "hyunwoo-mariadb.hyunwoo-hw.svc.cluster.local"
+  REDIS_HOST: "hyunwoo-redis-master.hyunwoo-hw.svc.cluster.local"
+  KAFKA_SERVERS: "hyunwoo-kafka.hyunwoo-hw.svc.cluster.local:9092"
+  
+  # 백엔드 사용자 정보
+  MYSQL_USER: "hyunwoo"
+  KAFKA_USERNAME: "user1"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: hyunwoo-hw
+data:
+  nginx.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        
+        # 긴 연결 유지
+        keepalive_timeout 300;
+        keepalive_requests 1000;
+        
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+            try_files $uri $uri/ /index.html;
+        }
+        
+        location /api/ {
+            rewrite ^/api/(.*) /$1 break;
+            proxy_pass http://backend-service:5000;
+            
+            # 버퍼 설정 최적화
+            proxy_buffering on;
+            proxy_buffer_size 128k;
+            proxy_buffers 4 256k;
+            proxy_busy_buffers_size 256k;
+            
+            # 타임아웃 설정 증가
+            proxy_connect_timeout 60;
+            proxy_send_timeout    60;
+            proxy_read_timeout    60;
+            send_timeout         60;
+            
+            # 기본 헤더
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header Connection "";
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }

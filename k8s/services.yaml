@@ -1,0 +1,64 @@
+# LoadBalancer Service for Frontend (외부 접근용)
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-loadbalancer
+  namespace: hyunwoo-hw
+  labels:
+    app: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+---
+# Headless Service for Backend (내부 통신용)
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-headless
+  namespace: hyunwoo-hw
+  labels:
+    app: backend
+spec:
+  clusterIP: None
+  selector:
+    app: backend
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+---
+# External Service (외부 API 연동용)
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-api
+  namespace: hyunwoo-hw
+spec:
+  type: ExternalName
+  externalName: api.external-service.com
+  ports:
+  - port: 443
+    targetPort: 443
+---
+# Service Monitor for Prometheus (모니터링용)
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-metrics
+  namespace: hyunwoo-hw
+  labels:
+    app: backend
+    monitoring: "true"
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+    protocol: TCP
