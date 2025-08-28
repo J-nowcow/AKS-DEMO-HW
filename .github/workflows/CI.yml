@@ -47,6 +47,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Run Trivy vulnerability scanner (Backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/aks-demo-hw-backend:latest
+          format: 'sarif'
+          output: 'backend-trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab (Backend)
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'backend-trivy-results.sarif'
+
   build-frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -86,3 +99,16 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner (Frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/aks-demo-hw-frontend:latest
+          format: 'sarif'
+          output: 'frontend-trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab (Frontend)
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'frontend-trivy-results.sarif'
