@@ -13,9 +13,11 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: frontend
-        image: jnowcow/aks-demo-hw-frontend:latest
+        image: ktech4.azurecr.io/aks-demo-hw-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -32,4 +34,4 @@ spec:
   ports:
   - port: 80
     targetPort: 80
-    nodePort: 30090
+    nodePort: 30091

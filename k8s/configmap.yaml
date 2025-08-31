@@ -15,8 +15,8 @@ data:
   
   # 백엔드 서비스 호스트
   MYSQL_HOST: "hyunwoo-mariadb.hyunwoo-hw.svc.cluster.local"
-  REDIS_HOST: "hyunwoo-redis-master.hyunwoo-hw.svc.cluster.local"
-  KAFKA_SERVERS: "hyunwoo-kafka.hyunwoo-hw.svc.cluster.local:9092"
+  REDIS_HOST: "redis-master.default.svc.cluster.local"
+  KAFKA_SERVERS: "my-kafka.default.svc.cluster.local:9092"
   
   # 백엔드 사용자 정보
   MYSQL_USER: "hyunwoo"

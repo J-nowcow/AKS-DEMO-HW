@@ -1,10 +1,61 @@
+# 🚀 완전한 OpenTelemetry 자동 계측 초기화
+import os
+
+def init_opentelemetry():
+    """완전한 OpenTelemetry 자동 계측 초기화"""
+    try:
+        # 필요한 모듈들 import
+        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.instrumentation.flask import FlaskInstrumentor
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+        
+        # Resource 설정
+        resource = Resource.create({
+            "service.name": os.getenv('OTEL_SERVICE_NAME', 'hyunwoo'),
+            "service.version": "1.0.0",
+            "deployment.environment": "development"
+        })
+        
+        # TracerProvider 설정
+        provider = TracerProvider(resource=resource)
+        trace.set_tracer_provider(provider)
+        
+        # OTLP Exporter 설정
+        otlp_endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://localhost:4318')
+        exporter = OTLPSpanExporter(endpoint=otlp_endpoint + '/v1/traces')
+        processor = BatchSpanProcessor(exporter)
+        provider.add_span_processor(processor)
+        
+        # 자동 계측 활성화
+        FlaskInstrumentor().instrument()
+        RequestsInstrumentor().instrument()
+        
+        print(f"✅ OpenTelemetry 완전 초기화 완료!")
+        print(f"📡 서비스명: {os.getenv('OTEL_SERVICE_NAME', 'hyunwoo')}")
+        print(f"📡 전송 엔드포인트: {otlp_endpoint}/v1/traces")
+        print(f"📡 TracerProvider: {trace.get_tracer_provider()}")
+        return True
+        
+    except ImportError as e:
+        print(f"⚠️ OpenTelemetry 자동 계측 실패 (라이브러리 없음): {e}")
+        return False
+    except Exception as e:
+        print(f"❌ OpenTelemetry 자동 계측 오류: {e}")
+        return False
+
+# 자동 계측 초기화 실행
+otel_enabled = init_opentelemetry()
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import redis
 import mysql.connector
 import json
 from datetime import datetime
-import os
 from kafka import KafkaProducer, KafkaConsumer
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -65,6 +116,7 @@ def async_log_api_stats(endpoint, method, status, user_id):
         try:
             producer = get_kafka_producer()
             log_data = {
+                'developer_tag': os.getenv('DEVELOPER_TAG', 'hyunwoo'),  # 개발자 구분 태그
                 'timestamp': datetime.now().isoformat(),
                 'endpoint': endpoint,
                 'method': method,
@@ -72,7 +124,8 @@ def async_log_api_stats(endpoint, method, status, user_id):
                 'user_id': user_id,
                 'message': f"{user_id}가 {method} {endpoint} 호출 ({status})"
             }
-            producer.send('api-logs', log_data)
+            topic_name = f"api-logs-{os.getenv('DEVELOPER_TAG', 'hyunwoo')}"
+            producer.send(topic_name, log_data)
             producer.flush()
         except Exception as e:
             print(f"Kafka logging error: {str(e)}")
@@ -272,8 +325,9 @@ def search_messages():
 @login_required
 def get_kafka_logs():
     try:
+        topic_name = f"api-logs-{os.getenv('DEVELOPER_TAG', 'hyunwoo')}"
         consumer = KafkaConsumer(
-            'api-logs',
+            topic_name,
             bootstrap_servers=os.getenv('KAFKA_SERVERS', 'my-kafka:9092'),
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
             group_id='api-logs-viewer',
@@ -282,18 +336,23 @@ def get_kafka_logs():
         )
         
         logs = []
+        my_developer_tag = os.getenv('DEVELOPER_TAG', 'hyunwoo')  # 내 개발자 태그
+        
         try:
             for message in consumer:
-                logs.append({
-                    'timestamp': message.value['timestamp'],
-                    'endpoint': message.value['endpoint'],
-                    'method': message.value['method'],
-                    'status': message.value['status'],
-                    'user_id': message.value['user_id'],
-                    'message': message.value['message']
-                })
-                if len(logs) >= 100:
-                    break
+                # 내 개발자 태그 로그만 필터링
+                if message.value.get('developer_tag') == my_developer_tag:
+                    logs.append({
+                        'developer_tag': message.value['developer_tag'],
+                        'timestamp': message.value['timestamp'],
+                        'endpoint': message.value['endpoint'],
+                        'method': message.value['method'],
+                        'status': message.value['status'],
+                        'user_id': message.value['user_id'],
+                        'message': message.value['message']
+                    })
+                    if len(logs) >= 100:
+                        break
         finally:
             consumer.close()
         

@@ -59,6 +59,36 @@
         </div>
 
         <div class="section">
+          <h2>Kafka 통계 로그</h2>
+          <button @click="getKafkaLogs">통계 로그 조회</button>
+          <div v-if="kafkaLogs.length">
+            <h3>API 통계 및 감사 로그:</h3>
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>사용자</th>
+                  <th>메서드</th>
+                  <th>엔드포인트</th>
+                  <th>상태</th>
+                  <th>메시지</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(log, index) in kafkaLogs" :key="index" :class="{'error-log': log.status === 'error'}">
+                  <td>{{ formatDate(log.timestamp) }}</td>
+                  <td>{{ log.user_id }}</td>
+                  <td><span class="method-badge" :class="log.method.toLowerCase()">{{ log.method }}</span></td>
+                  <td>{{ log.endpoint }}</td>
+                  <td><span class="status-badge" :class="log.status">{{ log.status }}</span></td>
+                  <td>{{ log.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section">
           <h2>메시지 검색</h2>
           <div class="search-section">
             <input v-model="searchQuery" placeholder="메시지 검색">
@@ -109,6 +139,7 @@ export default {
       dbMessage: '',
       dbData: [],
       redisLogs: [],
+      kafkaLogs: [],
       sampleMessages: [
         '안녕하세요! 테스트 메시지입니다.',
         'K8s 데모 샘플 데이터입니다.',

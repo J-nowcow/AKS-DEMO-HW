@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    appgw.ingress.kubernetes.io/use-private-ip: "false"
+  name: hyunwoo-frontend-ingress
+  namespace: hyunwoo-hw
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - host: hyunwoo.20.249.180.207.nip.io  # Ingress Controller IP 사용
+    http:
+      paths:
+      - backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+        path: /
+        pathType: Prefix

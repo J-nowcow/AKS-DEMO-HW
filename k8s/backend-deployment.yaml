@@ -12,16 +12,20 @@ spec:
     metadata:
       labels:
         app: backend
+      annotations: {}
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
       - name: backend
-        image: jnowcow/aks-demo-hw-backend:latest
+        image: ktech4.azurecr.io/aks-demo-hw-backend:otel-complete
         imagePullPolicy: Always
+        # 🚀 OpenTelemetry는 환경변수로 자동 활성화됩니다
         ports:
         - containerPort: 5000
         env:
         - name: MYSQL_HOST
-          value: "hyunwoo-mariadb.hyunwoo-hw.svc.cluster.local"
+          value: "mariadb.hyunwoo-hw.svc.cluster.local"
         - name: MYSQL_USER
           value: "hyunwoo"
         - name: MYSQL_PASSWORD
@@ -29,10 +33,15 @@ spec:
             secretKeyRef:
               name: backend-secrets
               key: MYSQL_PASSWORD
+
         - name: REDIS_HOST
-          value: "hyunwoo-redis-master.hyunwoo-hw.svc.cluster.local"
+          value: "redis-master.default.svc.cluster.local"
         - name: KAFKA_SERVERS
-          value: "hyunwoo-kafka:9092"
+          value: "my-kafka.default.svc.cluster.local:9092"
+        - name: KAFKA_TOPIC_PREFIX
+          value: "hyunwoo"
+        - name: DEVELOPER_TAG
+          value: "hyunwoo"
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -50,6 +59,34 @@ spec:
             secretKeyRef:
               name: backend-secrets
               key: FLASK_SECRET_KEY
+        
+        # 🚀 OpenTelemetry 자동 계측 (환경변수만으로 끝!)
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://collector.lgtm.20.249.154.255.nip.io"
+        - name: OTEL_SERVICE_NAME  
+          value: "hyunwoo"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.version=1.0.0,deployment.environment=development,k8s.namespace.name=hyunwoo-hw"
+        
+        # 🎯 Python 자동 계측 활성화
+        - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+          value: "true"
+        - name: OTEL_PYTHON_LOG_CORRELATION
+          value: "true"
+        - name: OTEL_PYTHON_LOG_LEVEL
+          value: "info"
+        
+        # 🔄 자동 계측 라이브러리 활성화
+        - name: OTEL_TRACES_EXPORTER
+          value: "otlp"
+        - name: OTEL_METRICS_EXPORTER  
+          value: "none"
+        - name: OTEL_LOGS_EXPORTER
+          value: "none"
+        
+        # 📈 Instrumentation 활성화
+        - name: OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
+          value: ""
 ---
 apiVersion: v1
 kind: Service

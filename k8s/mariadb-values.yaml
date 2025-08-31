@@ -15,11 +15,11 @@ primary:
   
   resources:
     limits:
-      cpu: 1000m
-      memory: 1024Mi
-    requests:
-      cpu: 250m
+      cpu: 200m
       memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
 
 service:
   type: ClusterIP
