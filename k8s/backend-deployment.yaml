@@ -18,7 +18,7 @@ spec:
       - name: acr-secret
       containers:
       - name: backend
-        image: ktech4.azurecr.io/aks-demo-hw-backend:otel-complete
+        image: ktech4.azurecr.io/aks-demo-hw-backend:latest
         imagePullPolicy: Always
         # 🚀 OpenTelemetry는 환경변수로 자동 활성화됩니다
         ports:
@@ -37,7 +37,10 @@ spec:
         - name: REDIS_HOST
           value: "redis-master.default.svc.cluster.local"
         - name: KAFKA_SERVERS
-          value: "my-kafka.default.svc.cluster.local:9092"
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_SERVERS
         - name: KAFKA_TOPIC_PREFIX
           value: "hyunwoo"
         - name: DEVELOPER_TAG
@@ -48,11 +51,14 @@ spec:
               name: backend-secrets
               key: REDIS_PASSWORD
         - name: KAFKA_USERNAME
-          value: "user1"
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_USERNAME
         - name: KAFKA_PASSWORD
           valueFrom:
-            secretKeyRef:
-              name: backend-secrets
+            configMapKeyRef:
+              name: app-config
               key: KAFKA_PASSWORD
         - name: FLASK_SECRET_KEY
           valueFrom:
@@ -83,6 +89,24 @@ spec:
           value: "none"
         - name: OTEL_LOGS_EXPORTER
           value: "none"
+        
+        # 🎯 트레이스 샘플링 100% (모든 트레이스 수집)
+        - name: OTEL_TRACES_SAMPLER
+          value: "always_on"
+        - name: OTEL_TRACES_SAMPLER_ARG
+          value: "1.0"
+        
+        # 👑 관리자 계정 설정
+        - name: ADMIN_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ADMIN_USERNAME
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ADMIN_PASSWORD
         
         # 📈 Instrumentation 활성화
         - name: OTEL_PYTHON_DISABLED_INSTRUMENTATIONS

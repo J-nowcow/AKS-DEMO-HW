@@ -4,6 +4,7 @@ redis
 kafka-python
 mysql-connector-python
 werkzeug
+pytz
 
 # OpenTelemetry 자동 계측 - 개별 instrumentation 패키지들 명시
 opentelemetry-distro[otlp]

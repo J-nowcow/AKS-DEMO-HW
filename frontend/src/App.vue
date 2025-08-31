@@ -117,6 +117,45 @@
             </table>
           </div>
         </div>
+
+        <!-- 관리자 전용 사용자 목록 -->
+        <div class="section admin-section" v-if="isAdmin">
+          <h2>👑 관리자 전용 - 전체 사용자 목록</h2>
+          <div class="admin-controls">
+            <button @click="getAllUsers" class="admin-btn">사용자 목록 새로고침</button>
+            <span class="user-count" v-if="allUsers.length">총 {{ allUsers.length }}명의 사용자</span>
+          </div>
+          <div v-if="allUsers.length" class="users-table">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>사용자명</th>
+                  <th>가입일</th>
+                  <th>메시지 수</th>
+                  <th>마지막 활동</th>
+                  <th>권한</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="user in allUsers" :key="user.id" :class="{'admin-row': user.username === 'admin'}">
+                  <td>{{ user.id }}</td>
+                  <td>
+                    <span v-if="user.username === 'admin'" class="admin-badge">👑</span>
+                    {{ user.username }}
+                  </td>
+                  <td>{{ formatDate(user.created_at) }}</td>
+                  <td>{{ user.message_count }}</td>
+                  <td>{{ user.last_message_at ? formatDate(user.last_message_at) : '없음' }}</td>
+                  <td>
+                    <span v-if="user.username === 'admin'" class="role-badge admin">관리자</span>
+                    <span v-else class="role-badge user">일반 사용자</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -135,11 +174,13 @@ export default {
       username: '',
       password: '',
       isLoggedIn: false,
+      isAdmin: false,
       searchQuery: '',
       dbMessage: '',
       dbData: [],
       redisLogs: [],
       kafkaLogs: [],
+      allUsers: [],
       sampleMessages: [
         '안녕하세요! 테스트 메시지입니다.',
         'K8s 데모 샘플 데이터입니다.',
@@ -170,10 +211,13 @@ export default {
       try {
         await axios.post(`${API_BASE_URL}/db/message`, {
           message: this.dbMessage
+        }, {
+          withCredentials: true  // 세션 쿠키 포함
         });
         this.dbMessage = '';
         this.getFromDb();
         this.getRedisLogs();
+        this.getKafkaLogs();
       } catch (error) {
         console.error('DB 저장 실패:', error);
       }
@@ -183,7 +227,9 @@ export default {
     async getFromDb() {
       try {
         this.loading = true;
-        const response = await axios.get(`${API_BASE_URL}/db/messages?offset=${this.offset}&limit=${this.limit}`);
+        const response = await axios.get(`${API_BASE_URL}/db/messages?offset=${this.offset}&limit=${this.limit}`, {
+          withCredentials: true  // 세션 쿠키 포함
+        });
         this.dbData = response.data;
         this.hasMore = response.data.length === this.limit;
       } catch (error) {
@@ -199,9 +245,12 @@ export default {
       try {
         await axios.post(`${API_BASE_URL}/db/message`, {
           message: randomMessage
+        }, {
+          withCredentials: true  // 세션 쿠키 포함
         });
         this.getFromDb();
         this.getRedisLogs();
+        this.getKafkaLogs();
       } catch (error) {
         console.error('샘플 데이터 저장 실패:', error);
       }
@@ -210,10 +259,32 @@ export default {
     // Redis에 저장된 API 호출 로그 조회
     async getRedisLogs() {
       try {
-        const response = await axios.get(`${API_BASE_URL}/logs/redis`);
+        const response = await axios.get(`${API_BASE_URL}/logs/redis`, {
+          withCredentials: true  // 세션 쿠키 포함
+        });
         this.redisLogs = response.data;
       } catch (error) {
         console.error('Redis 로그 조회 실패:', error);
+      }
+    },
+
+    // Kafka에 저장된 API 통계 로그 조회
+    async getKafkaLogs() {
+      try {
+        this.loading = true;
+        const response = await axios.get(`${API_BASE_URL}/logs/kafka`, {
+          withCredentials: true  // 세션 쿠키 포함
+        });
+        this.kafkaLogs = response.data;
+      } catch (error) {
+        console.error('Kafka 로그 조회 실패:', error);
+        if (error.response && error.response.status === 401) {
+          alert('로그인이 필요합니다. 다시 로그인해주세요.');
+        } else {
+          alert('Kafka 로그 조회에 실패했습니다.');
+        }
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -223,13 +294,22 @@ export default {
         const response = await axios.post(`${API_BASE_URL}/login`, {
           username: this.username,
           password: this.password
+        }, {
+          withCredentials: true  // 세션 쿠키 포함
         });
         
         if (response.data.status === 'success') {
           this.isLoggedIn = true;
+          this.isAdmin = response.data.is_admin || false;
           this.currentUser = this.username;
           this.username = '';
           this.password = '';
+          // 로그인 성공 시 기본 데이터 로드 (Redis 로그는 자동으로 로드하지 않음)
+          this.getFromDb();
+          // 관리자인 경우 사용자 목록 로드
+          if (this.isAdmin) {
+            this.getAllUsers();
+          }
         } else {
           alert(response.data.message || '로그인에 실패했습니다.');
         }
@@ -244,10 +324,18 @@ export default {
     // 로그아웃 처리
     async logout() {
       try {
-        await axios.post(`${API_BASE_URL}/logout`);
+        await axios.post(`${API_BASE_URL}/logout`, {}, {
+          withCredentials: true  // 세션 쿠키 포함
+        });
         this.isLoggedIn = false;
         this.username = '';
         this.password = '';
+        // 로그아웃 시 데이터 초기화
+        this.redisLogs = [];
+        this.kafkaLogs = [];
+        this.dbData = [];
+        this.allUsers = [];
+        this.searchResults = [];
       } catch (error) {
         console.error('로그아웃 실패:', error);
       }
@@ -258,9 +346,12 @@ export default {
       try {
         this.loading = true;
         const response = await axios.get(`${API_BASE_URL}/db/messages/search`, {
-          params: { q: this.searchQuery }
+          params: { q: this.searchQuery },
+          withCredentials: true  // 세션 쿠키 포함
         });
         this.searchResults = response.data;
+        // 검색 후 로그 업데이트
+        this.getKafkaLogs();
       } catch (error) {
         console.error('검색 실패:', error);
         alert('검색에 실패했습니다.');
@@ -273,8 +364,12 @@ export default {
     async getAllMessages() {
       try {
         this.loading = true;
-        const response = await axios.get(`${API_BASE_URL}/db/messages`);
+        const response = await axios.get(`${API_BASE_URL}/db/messages`, {
+          withCredentials: true  // 세션 쿠키 포함
+        });
         this.searchResults = response.data;
+        // 전체 메시지 조회 후 로그 업데이트
+        this.getKafkaLogs();
       } catch (error) {
         console.error('전체 메시지 로드 실패:', error);
       } finally {
@@ -299,6 +394,8 @@ export default {
         const response = await axios.post(`${API_BASE_URL}/register`, {
           username: this.registerUsername,
           password: this.registerPassword
+        }, {
+          withCredentials: true  // 세션 쿠키 포함
         });
         
         if (response.data.status === 'success') {
@@ -313,6 +410,27 @@ export default {
         alert(error.response && error.response.data && error.response.data.message 
           ? error.response.data.message 
           : '회원가입에 실패했습니다.');
+      }
+    },
+
+    // 관리자 전용 - 전체 사용자 목록 조회
+    async getAllUsers() {
+      if (!this.isAdmin) {
+        alert('관리자 권한이 필요합니다.');
+        return;
+      }
+      
+      try {
+        this.loading = true;
+        const response = await axios.get(`${API_BASE_URL}/admin/users`, {
+          withCredentials: true  // 세션 쿠키 포함
+        });
+        this.allUsers = response.data.users;
+      } catch (error) {
+        console.error('사용자 목록 조회 실패:', error);
+        alert('사용자 목록 조회에 실패했습니다.');
+      } finally {
+        this.loading = false;
       }
     }
   }
@@ -457,5 +575,219 @@ li {
 
 .view-all-btn:hover {
   background-color: #5a6268;
+}
+
+/* Kafka 로그 테이블 스타일 */
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.log-table th,
+.log-table td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
+}
+
+.log-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  color: #495057;
+  font-size: 13px;
+}
+
+.log-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.log-table tr.error-log {
+  background-color: #fff5f5;
+}
+
+.log-table tr.error-log:hover {
+  background-color: #fed7d7;
+}
+
+/* 메서드 배지 스타일 */
+.method-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: white;
+}
+
+.method-badge.get {
+  background-color: #28a745;
+}
+
+.method-badge.post {
+  background-color: #007bff;
+}
+
+.method-badge.put {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.method-badge.delete {
+  background-color: #dc3545;
+}
+
+/* 상태 배지 스타일 */
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-badge.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-badge.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* 반응형 테이블 */
+@media (max-width: 768px) {
+  .log-table {
+    font-size: 12px;
+  }
+  
+  .log-table th,
+  .log-table td {
+    padding: 6px 4px;
+  }
+  
+  .method-badge,
+  .status-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
+
+/* 관리자 전용 스타일 */
+.admin-section {
+  border: 2px solid #ffd700;
+  background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.admin-section h2 {
+  color: #b8860b;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.admin-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 5px;
+}
+
+.admin-btn {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+  color: #8b4513;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.admin-btn:hover {
+  background: linear-gradient(135deg, #ffed4a 0%, #ffd700 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+}
+
+.user-count {
+  color: #8b4513;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 5px 10px;
+  border-radius: 15px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.admin-table th {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+  color: #8b4513;
+  font-weight: bold;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+}
+
+.admin-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.admin-table tr:hover {
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.admin-table tr.admin-row {
+  background: rgba(255, 215, 0, 0.1);
+  font-weight: bold;
+}
+
+.admin-table tr.admin-row:hover {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.admin-badge {
+  margin-right: 5px;
+  font-size: 16px;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.role-badge.admin {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+  color: #8b4513;
+  border: 1px solid #daa520;
+}
+
+.role-badge.user {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
 }
 </style> 

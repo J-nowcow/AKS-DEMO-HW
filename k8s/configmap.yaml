@@ -16,11 +16,16 @@ data:
   # 백엔드 서비스 호스트
   MYSQL_HOST: "hyunwoo-mariadb.hyunwoo-hw.svc.cluster.local"
   REDIS_HOST: "redis-master.default.svc.cluster.local"
-  KAFKA_SERVERS: "my-kafka.default.svc.cluster.local:9092"
+  KAFKA_SERVERS: "team-kafka.default.svc.cluster.local:9092"
   
   # 백엔드 사용자 정보
   MYSQL_USER: "hyunwoo"
   KAFKA_USERNAME: "user1"
+  KAFKA_PASSWORD: "password"
+  
+  # 관리자 계정 정보
+  ADMIN_USERNAME: "admin"
+  ADMIN_PASSWORD: "admin"
 ---
 apiVersion: v1
 kind: ConfigMap

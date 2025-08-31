@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM ktech4.azurecr.io/python:3.8-slim
 
 WORKDIR /app
 COPY requirements.txt .
